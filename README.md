@@ -1,6 +1,6 @@
 # 🛎️ Agentic Tourism Concierge
 
-A Full-Stack Proof of Concept (PoC) for an AI-driven tourism hospitality system. This application represents **Step 1** of an autonomous pipeline composed of 4 agents.
+A Full-Stack Proof of Concept (PoC) for an AI-driven tourism experiences system. This application represents **Step 1** of an autonomous pipeline composed of 4 agents.
 
 The **Concierge** is designed to offer a high-level hospitality experience. It manages conversations dynamically, recognizes user preferences, and ensures all data is verified before generating the final profile.
 
@@ -11,6 +11,14 @@ The **Concierge** is designed to offer a high-level hospitality experience. It m
 - **Human-in-the-Loop:** Includes a dedicated **Review & Correction** phase to ensure 100% accurate data.
 - **Local Privacy:** Powered by `ollama` with `llama3.1:8b`, keeping sensitive data on the local machine.
 - **Contextual Awareness:** Handles environmental sensitivities and neutral redirection for off-scope topics.
+
+---
+
+## 🏗️ Project Architecture
+The project is modularized to separate AI logic from the web interface:
+- `src/core.py`: **Backend Logic.** Contains the `COLLECTION_GUIDE`, system prompts, and Ollama integration.
+- `src/app.py`: **Frontend UI.** Built with **Chainlit** to provide a modern, responsive chat experience.
+- `.chainlit/config.toml`: **UI Configuration.** Used to enable/disable features like file uploads.
 
 ---
 
