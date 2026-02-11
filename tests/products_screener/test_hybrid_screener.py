@@ -20,10 +20,9 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from common.config import (
-    TOP_RESULTS_COUNT,
-)
+from common.config import TOP_RESULTS_COUNT
 from common.pipeline import screen_products
+from conftest import requires_db
 from product_synthesizer.types import (
     HardConstraints,
     SemanticExclusions,
@@ -159,6 +158,7 @@ def verify_no_stairs_towers(products: list[dict]) -> tuple[bool, list[str]]:
     return len(violations) == 0, violations
 
 
+@requires_db
 class TestHybridScreenerE2E:
     """End-to-end tests for the hybrid product screener."""
 
@@ -288,6 +288,7 @@ class TestHybridScreenerE2E:
         assert len(products) <= TOP_RESULTS_COUNT, f"Should return at most {TOP_RESULTS_COUNT} products"
 
 
+@requires_db
 class TestHybridScreenerWithRomeData:
     """
     E2E tests using Rome coordinates to match the mock data.

@@ -13,6 +13,7 @@ import pandas as pd
 import pytest
 
 from common.config import PROXIMITY_RADIUS_KM, SEMANTIC_EXCLUSION_THRESHOLD, TOP_RESULTS_COUNT
+from conftest import requires_db
 from product_hard_screener.core import (
     build_sql_where,
     filter_by_proximity,
@@ -281,6 +282,7 @@ class TestConfigValues:
         assert SEMANTIC_EXCLUSION_THRESHOLD == 0.7
 
 
+@requires_db
 class TestIntegrationWithDatabase:
     """Integration tests using the actual LanceDB database."""
 
@@ -589,6 +591,7 @@ class TestConfigValuesPhase2:
         assert TOP_RESULTS_COUNT == 5
 
 
+@requires_db
 class TestFullPipelineVeniceExample:
     """
     Checkpoint 12: Verify full pipeline works with Venice boat tour example.
