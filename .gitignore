@@ -66,3 +66,6 @@ temp/
 .chainlit/data/
 # DO NOT ignore config.toml if you want to share UI settings
 # .chainlit/config.toml
+
+# Data dir
+data/

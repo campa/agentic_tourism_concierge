@@ -1,13 +1,10 @@
-import json
 from datetime import date
 
-import ollama
-from logging_config import get_logger
+from llm_utils import LIST_OF_STRINGS
+
+from common.logging_config import get_logger
 
 # Constants
-LLM_MODEL="llama3.1:8b"
-LIST_OF_STRINGS = "list of strings"
-CONVERSATION_COMPLETE_MARKER = "CONVERSATION_COMPLETE"
 COLLECTION_GUIDE = {
     "full_name": {"hint": "Full Name", "type": "string"},
     "age": {"hint": "Age", "type": "integer"},
@@ -32,6 +29,7 @@ COLLECTION_GUIDE = {
 
 # Init - Module level vars
 logger = get_logger("personal_information_collector_core")
+
 
 # Functions
 def get_system_instructions() -> str:
@@ -102,27 +100,8 @@ def get_system_instructions() -> str:
 
     return system_prompt
 
+
 def get_first_message() -> str:
     """Generate the first message to start the conversation."""
     ## The user doesn't see this 'Hello', it just wakes up the agent.
     return "Hello, I'm ready to start the intake"
-
-def get_ai_response(messages):
-    """Interface to the chat model"""
-    response = ollama.chat(model=LLM_MODEL, messages=messages)
-    return response["message"]["content"]
-
-def extract_json(assistant_msg):
-    """Extract JSON if the conversation is finished"""
-    logger.debug(f"extract_json called with: {assistant_msg}")
-    if CONVERSATION_COMPLETE_MARKER in assistant_msg:
-        try:
-            parts = assistant_msg.split(CONVERSATION_COMPLETE_MARKER)
-            text_part = parts[0].strip()
-            # Clean up to capture pure JSON
-            json_part = parts[1].strip().replace("```json", "").replace("```", "")
-            return text_part, json.loads(json_part)
-        except Exception as e:
-            logger.error(f"Failed to extract JSON from assistant message: {e}", exc_info=True)
-            return assistant_msg, None
-    return assistant_msg, None

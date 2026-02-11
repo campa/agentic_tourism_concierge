@@ -6,8 +6,13 @@ authors = [{ name = "Stefano Emilio Campanini", email = "stefano.campanini@gmail
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "chainlit>=2.9.4",
+    "duckdb>=1.4.3",
+    "lancedb>=0.27.0",
     "ollama>=0.6.1",
+    "pandas>=2.0.0",
+    "pylance>=1.0.3",
     "rich>=13.0.0",
+    "tantivy>=0.25.1",
 ]
 
 [project.optional-dependencies]
