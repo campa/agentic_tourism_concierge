@@ -12,7 +12,6 @@ Verifies:
 - No stairs/towers in final results
 """
 
-import json
 import os
 import sys
 
@@ -22,8 +21,6 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from common.config import (
-    PROXIMITY_RADIUS_KM,
-    SEMANTIC_EXCLUSION_THRESHOLD,
     TOP_RESULTS_COUNT,
 )
 from common.pipeline import screen_products
@@ -33,8 +30,6 @@ from product_synthesizer.types import (
     SoftPreferences,
     SynthesizerOutput,
 )
-from product_synthesizer.core import synthesize_profile
-
 
 # Venice example test data
 VENICE_PERSONAL_INFO = {
@@ -71,10 +66,10 @@ def print_separator(title: str) -> None:
 def print_profile(profile: SynthesizerOutput) -> None:
     """Print the synthesized profile in a readable format."""
     print_separator("SYNTHESIZED PROFILE")
-    
+
     hard = profile.get("hard_constraints", {})
     soft = profile.get("soft_preferences", {})
-    
+
     print("HARD CONSTRAINTS:")
     print(f"  Country: {hard.get('country')}")
     print(f"  Target Location: ({hard.get('target_latitude')}, {hard.get('target_longitude')})")
@@ -82,14 +77,14 @@ def print_profile(profile: SynthesizerOutput) -> None:
     print(f"  Holiday Dates: {hard.get('holiday_begin_date')} to {hard.get('holiday_end_date')}")
     print(f"  Age: {hard.get('age')}")
     print(f"  Max Pax: {hard.get('max_pax')}")
-    
+
     exclusions = hard.get("semantic_exclusions", {})
     print("  Semantic Exclusions:")
     print(f"    Accessibility: {exclusions.get('accessibility', [])}")
     print(f"    Diet: {exclusions.get('diet', [])}")
     print(f"    Medical: {exclusions.get('medical', [])}")
     print(f"    Fears: {exclusions.get('fears', [])}")
-    
+
     print("\nSOFT PREFERENCES:")
     print(f"  Preference Text: {soft.get('preference_text')}")
     print(f"  Interests: {soft.get('interests', [])}")
@@ -102,13 +97,13 @@ def print_profile(profile: SynthesizerOutput) -> None:
 def print_phase_counts(result: dict) -> None:
     """Print product counts after each phase."""
     print_separator("PHASE COUNTS")
-    
+
     phases = result.get("phases_applied", [])
     for i, phase in enumerate(phases, 1):
         print(f"  {i}. {phase}")
-    
+
     print(f"\n  Final product count: {len(result.get('products', []))}")
-    
+
     if result.get("message"):
         print(f"  Message: {result['message']}")
 
@@ -116,17 +111,17 @@ def print_phase_counts(result: dict) -> None:
 def print_results(products: list[dict]) -> None:
     """Print top results with relevance scores."""
     print_separator(f"TOP {TOP_RESULTS_COUNT} RESULTS")
-    
+
     if not products:
         print("  No products found matching criteria.")
         return
-    
+
     for i, product in enumerate(products[:TOP_RESULTS_COUNT], 1):
         print(f"\n  {i}. {product.get('title', 'Unknown Title')}")
         print(f"     Product ID: {product.get('product_id', 'N/A')}")
         print(f"     Location: {product.get('location', 'N/A')}")
         print(f"     Country: {product.get('country', 'N/A')}")
-        
+
         if "relevance_score" in product:
             print(f"     Relevance Score: {product['relevance_score']:.3f}")
         if "distance_km" in product:
@@ -141,26 +136,26 @@ def print_results(products: list[dict]) -> None:
 def verify_no_stairs_towers(products: list[dict]) -> tuple[bool, list[str]]:
     """
     Verify that no products contain stairs or towers in their content.
-    
+
     Returns:
         Tuple of (passed, violations) where violations is a list of product titles
         that contain forbidden terms.
     """
     forbidden_terms = ["stairs", "steps", "climbing", "tower", "rooftop", "heights", "observation deck"]
     violations = []
-    
+
     for product in products:
         title = product.get("title", "").lower()
         search_text = product.get("search_text", "").lower()
         faq_text = product.get("faq_text", "").lower()
-        
+
         combined_text = f"{title} {search_text} {faq_text}"
-        
+
         for term in forbidden_terms:
             if term in combined_text:
                 violations.append(f"{product.get('title', 'Unknown')} (contains '{term}')")
                 break
-    
+
     return len(violations) == 0, violations
 
 
@@ -203,13 +198,13 @@ class TestHybridScreenerE2E:
         """Test that the profile has correct structure."""
         assert "hard_constraints" in venice_profile
         assert "soft_preferences" in venice_profile
-        
+
         hard = venice_profile["hard_constraints"]
         assert hard["country"] == "IT"
         assert hard["target_latitude"] is not None
         assert hard["target_longitude"] is not None
         assert "semantic_exclusions" in hard
-        
+
         soft = venice_profile["soft_preferences"]
         assert soft["preference_text"] is not None
         assert len(soft["interests"]) > 0
@@ -217,11 +212,11 @@ class TestHybridScreenerE2E:
     def test_semantic_exclusions_populated(self, venice_profile):
         """Test that semantic exclusions are properly populated."""
         exclusions = venice_profile["hard_constraints"]["semantic_exclusions"]
-        
+
         # Accessibility exclusions for "no stairs"
         assert len(exclusions["accessibility"]) > 0
         assert "stairs" in exclusions["accessibility"]
-        
+
         # Fear exclusions for "heights"
         assert len(exclusions["fears"]) > 0
         assert "heights" in exclusions["fears"] or "tower" in exclusions["fears"]
@@ -244,13 +239,13 @@ class TestHybridScreenerE2E:
         """Test that results respect hard constraints."""
         result = screen_products(venice_profile)
         products = result.products
-        
+
         # If products were found, verify they match constraints
         for product in products:
             # Country should match
             if "country" in product:
                 assert product["country"] == "IT", f"Product {product.get('title')} has wrong country"
-            
+
             # Relevance scores should be valid
             if "relevance_score" in product:
                 assert 0.0 <= product["relevance_score"] <= 1.0
@@ -259,15 +254,15 @@ class TestHybridScreenerE2E:
         """Test that no products with stairs/towers appear in results."""
         result = screen_products(venice_profile)
         products = result.products
-        
+
         if not products:
             pytest.skip("No products returned - cannot verify exclusions")
-        
+
         passed, violations = verify_no_stairs_towers(products)
-        
+
         if not passed:
             print(f"\nViolations found: {violations}")
-        
+
         # Note: This is a soft assertion - semantic filtering may not catch all cases
         # depending on the threshold and embedding similarity
         if violations:
@@ -278,10 +273,10 @@ class TestHybridScreenerE2E:
         """Test that results are ordered by relevance score descending."""
         result = screen_products(venice_profile)
         products = result.products
-        
+
         if len(products) < 2:
             pytest.skip("Not enough products to verify ordering")
-        
+
         scores = [p.get("relevance_score", 0) for p in products]
         assert scores == sorted(scores, reverse=True), "Results should be ordered by relevance descending"
 
@@ -289,14 +284,14 @@ class TestHybridScreenerE2E:
         """Test that at most TOP_RESULTS_COUNT products are returned."""
         result = screen_products(venice_profile)
         products = result.products
-        
+
         assert len(products) <= TOP_RESULTS_COUNT, f"Should return at most {TOP_RESULTS_COUNT} products"
 
 
 class TestHybridScreenerWithRomeData:
     """
     E2E tests using Rome coordinates to match the mock data.
-    
+
     The mock_products.json contains a Rome Colosseum product, so we test
     with Rome coordinates to ensure we get results.
     """
@@ -351,17 +346,17 @@ class TestHybridScreenerWithRomeData:
         """Test that Colosseum ranks high for history preferences."""
         result = screen_products(rome_profile)
         products = result.products
-        
+
         if not products:
             pytest.skip("No products returned")
-        
+
         # Find the Colosseum product
         colosseum = None
         for p in products:
             if "Colosseum" in p.get("title", ""):
                 colosseum = p
                 break
-        
+
         if colosseum:
             print(f"\nColosseum found with relevance score: {colosseum.get('relevance_score', 'N/A')}")
             # Colosseum should have a decent relevance score for history preferences

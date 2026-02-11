@@ -5,8 +5,6 @@ import pytest
 from product_hard_screener.core import (
     HardScreeningResult,
     build_sql_where,
-    filter_by_proximity,
-    filter_by_semantic_exclusion,
     haversine_distance,
     screen_hard,
 )
@@ -31,7 +29,7 @@ class TestHardScreenerCore:
             "max_pax": None,
             "semantic_exclusions": {},
         }
-        
+
         where = build_sql_where(constraints)
         assert "country = 'IT'" in where
 
@@ -50,7 +48,7 @@ class TestHardScreenerCore:
             "max_pax": 2,
             "semantic_exclusions": {},
         }
-        
+
         where = build_sql_where(constraints)
         assert "country = 'IT'" in where
         assert "min_age" in where
@@ -66,7 +64,7 @@ class TestHardScreenerCore:
         """Test distance between Rome and Venice (~400km)."""
         rome_lat, rome_lon = 41.9028, 12.4964
         venice_lat, venice_lon = 45.4408, 12.3155
-        
+
         dist = haversine_distance(rome_lat, rome_lon, venice_lat, venice_lon)
         assert 390 < dist < 400  # ~394km
 
@@ -99,7 +97,7 @@ class TestHardScreenerIntegration:
     def test_screen_hard_returns_result(self, italy_constraints):
         """Test that screen_hard returns a HardScreeningResult."""
         result = screen_hard(italy_constraints)
-        
+
         assert isinstance(result, HardScreeningResult)
         assert isinstance(result.filtered_ids, list)
         assert result.initial_count >= 0
@@ -107,7 +105,7 @@ class TestHardScreenerIntegration:
     def test_screen_hard_returns_tuples(self, italy_constraints):
         """Test that filtered_ids contains (product_id, option_id, unit_id) tuples."""
         result = screen_hard(italy_constraints)
-        
+
         if result.filtered_ids:
             first_id = result.filtered_ids[0]
             assert isinstance(first_id, tuple)
@@ -133,8 +131,8 @@ class TestHardScreenerIntegration:
                 "fears": ["heights"],
             },
         }
-        
+
         result = screen_hard(constraints)
-        
+
         # Should have fewer results after exclusions
         assert result.after_exclusion_count <= result.after_proximity_count

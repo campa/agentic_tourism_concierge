@@ -1,6 +1,5 @@
 """Tests for the agent orchestrator."""
 
-import pytest
 
 from orchestrator.core import (
     AgentContext,
@@ -9,7 +8,6 @@ from orchestrator.core import (
     run_screening,
     run_synthesizer,
 )
-
 
 # Sample test data
 SAMPLE_PERSONAL_INFO = {
