@@ -1,84 +1,91 @@
-# 🛎️ Agentic Tourism Concierge
+# Agentic Tourism Concierge
 
-A Full-Stack Proof of Concept (PoC) for an AI-driven tourism experiences system. This application represents **Step 1** of an autonomous pipeline composed of 4 agents.
+AI-powered system that recommends tourism experiences based on user profiles. Collects personal/holiday info through conversational agents, then filters and ranks products from an OCTO-compliant catalog.
 
-The **Concierge** is designed to offer a high-level hospitality experience. It manages conversations dynamically, recognizes user preferences, and ensures all data is verified before generating the final profile.
+## What It Does
 
----
+1. **Collects** user info via two conversational agents (personal profile + holiday logistics)
+2. **Synthesizes** constraints and preferences using an LLM
+3. **Filters** products through hard constraints (location, dates, accessibility, safety)
+4. **Ranks** remaining products by semantic similarity to user preferences
 
-## 🚀 Key Features
-- **Schema-Driven Dialogue:** Uses a single `COLLECTION_GUIDE` to guide both conversation and final JSON structure.
-- **Human-in-the-Loop:** Includes a dedicated **Review & Correction** phase to ensure 100% accurate data.
-- **Local Privacy:** Powered by `ollama` with `llama3.1:8b`, keeping sensitive data on the local machine.
-- **Contextual Awareness:** Handles environmental sensitivities and neutral redirection for off-scope topics.
+## Architecture
 
----
-
-## 🏗️ Project Architecture
-The project is modularized to separate AI logic from the web interface:
-- `src/core.py`: **Backend Logic.** Contains the `COLLECTION_GUIDE`, system prompts, and Ollama integration.
-- `src/app.py`: **Frontend UI.** Built with **Chainlit** to provide a modern, responsive chat experience.
-- `.chainlit/config.toml`: **UI Configuration.** Used to enable/disable features like file uploads.
-
----
-
-## 🛠️ Requirements
-- [uv](https://docs.astral.sh/uv/) - Ultra-fast Python package and environment manager.
-- [Ollama](https://ollama.com/) - Running with the `llama3.1:8b` model.
-
----
-
-## 📦 Installation
-
-### 1. Model Setup
-Make sure Ollama is running and download the model:
-```bash
-ollama pull llama3.1:8b
+```
+┌─────────────────┐    ┌─────────────────┐
+│    Personal     │    │     Holiday     │
+│   Collector     │    │    Collector    │
+└────────┬────────┘    └────────┬────────┘
+         │                      │
+         └──────────┬───────────┘
+                    ▼
+           ┌────────────────┐
+           │   Synthesizer  │  LLM extracts constraints + preferences
+           └────────┬───────┘
+                    ▼
+           ┌────────────────┐
+           │ Hard Screener  │  SQL + Proximity + Semantic Exclusion
+           └────────┬───────┘
+                    ▼
+           ┌────────────────┐
+           │ Soft Screener  │  Vector similarity ranking
+           └────────┬───────┘
+                    ▼
+              Top 5 Products
 ```
 
-### 2. Clone and Setup
+See [docs/architecture.md](docs/architecture.md) for details.
+
+## Tech Stack
+
+- **LLM**: Ollama with Llama 3.1:8b (local, privacy-preserving)
+- **Vector DB**: LanceDB with sentence-transformers embeddings
+- **UI**: Chainlit for conversational interface
+- **Data Format**: OCTO specification for tourism products
+
+## Setup
+
 ```bash
-git clone <your-repo-url>
+# 1. Install Ollama and pull model
+ollama pull llama3.1:8b
+
+# 2. Clone and install
+git clone <repo-url>
 cd agentic_tourism_concierge
 uv sync
-```
 
-### 3. Start the Application
-```bash
+# 3. Run
 uv run chainlit run src/personal_information_collector/app.py
 ```
 
----
+## Project Structure
 
-## 🔄 Workflow
+```
+src/
+├── common/                     # Shared utilities (config, geocoding, LLM)
+├── orchestrator/               # Pipeline coordinator
+├── personal_information_collector/  # Agent 1: user profile
+├── holiday_information_collector/   # Agent 2: trip logistics
+├── product_synthesizer/        # LLM-based constraint extraction
+├── product_ingestor/           # OCTO data → LanceDB
+├── product_hard_screener/      # Filtering (SQL, proximity, exclusions)
+└── product_soft_screener/      # Semantic ranking
+```
 
-1. **Intake:** The user interacts with the Concierge providing personal data, interests, and medical needs.
+## Development
 
-2. **Review:** The agent presents a summary; the user can confirm or request changes.
+```bash
+uv run pytest                    # Run tests
+uv run ruff check . --fix        # Lint
+uv run ruff format .             # Format
+```
 
-3. **Data Export:** Once confirmed, a structured JSON is generated and downloadable via the interface button.
+## Why This Design
 
----
+**Two-phase screening** solves the semantic mismatch problem. Pure keyword search returns "Colosseum tour" when user wants "boat tour" because both contain "tour". By separating hard constraints (must-have filters) from soft preferences (nice-to-have ranking), we ensure:
 
-## 🛠️ Development
-### 🌍 Environment Management
+1. Safety-critical constraints (accessibility, medical) are never violated
+2. User preferences influence ranking without excluding valid options
+3. Location proximity is enforced before semantic matching
 
-The project uses uv for robust management:
-
-- **Sync environment:** `uv sync`
-- **Add dependencies:** `uv add <package-name>`
-- **Add development tools:** `uv add --dev <package-name>`
-
-### 🧹 Linting and Formatting
-
-We use Ruff for quality control and formatting:
-
-- **Check errors:** `uv run ruff check .`
-- **Auto-fix:** `uv run ruff check . --fix`
-- **Format:** `uv run ruff format .`
-
-### 🔍 Type Checking
-
-Static type analysis via Mypy:
-
-- **Run type check:** `uv run mypy .`
+**Local LLM** keeps sensitive personal/medical data on-device. No cloud API calls for user information processing.

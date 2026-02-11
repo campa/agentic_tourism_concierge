@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.0.0",
     "pylance>=1.0.3",
     "rich>=13.0.0",
+    "sentence-transformers>=5.0.0",
     "tantivy>=0.25.1",
 ]
 
@@ -27,11 +28,12 @@ dev = [
 [project.scripts]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/agentic_tourism_crew"]
+[tool.pdm.build]
+includes = ["src"]
+package-dir = "src"
 
 [tool.ruff]
 line-length = 100
@@ -56,3 +58,12 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
