@@ -75,6 +75,7 @@ src/
 ## Development
 
 ```bash
+uv uv sync --extra dev
 uv run pytest                    # Run tests
 uv run ruff check . --fix        # Lint
 uv run ruff format .             # Format

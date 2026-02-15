@@ -5,15 +5,15 @@ Ranks products using soft preferences:
 - Semantic similarity to preference text
 - Interest matching
 
-Input: 
+Input:
 - List of (product_id, option_id, unit_id) tuples from hard screener
 - SoftPreferences from synthesizer
 
 Output: Ranked list of products with relevance scores
 """
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 import lancedb
 import numpy as np
@@ -56,10 +56,10 @@ def _cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
 @dataclass
 class SoftScreeningResult:
     """Result from soft screening containing ranked products."""
-    
+
     # List of product dicts with relevance scores, ordered by score descending
     products: list[dict]
-    
+
     # Metadata
     input_count: int
     output_count: int
@@ -70,32 +70,32 @@ def load_products_by_ids(
 ) -> pd.DataFrame:
     """
     Load products from database by their (product_id, option_id, unit_id) tuples.
-    
+
     Args:
         filtered_ids: List of (product_id, option_id, unit_id) tuples
-        
+
     Returns:
         DataFrame with matching products
     """
     if not filtered_ids:
         return pd.DataFrame()
-    
+
     db_path = os.path.join(os.getcwd(), DB_PATH)
     db = lancedb.connect(db_path)
     table = db.open_table(TABLE_NAME)
-    
+
     # Load all data and filter in pandas (more efficient for multiple IDs)
     all_products = table.to_pandas()
-    
+
     # Create a set of tuples for fast lookup
     id_set = set(filtered_ids)
-    
+
     # Filter to matching rows
     mask = all_products.apply(
         lambda row: (row["product_id"], row["option_id"], row["unit_id"]) in id_set,
         axis=1
     )
-    
+
     return all_products[mask].copy()
 
 
@@ -106,12 +106,12 @@ def rank_by_preferences(
 ) -> pd.DataFrame:
     """
     Rank products by semantic similarity to soft preferences.
-    
+
     Args:
         products: DataFrame containing product data with 'vector' column
         soft_preferences: SoftPreferences dict with preference_text, interests, etc.
         top_n: Number of top results to return
-        
+
     Returns:
         DataFrame containing top N products ordered by relevance_score,
         deduplicated by product_id (keeping highest score)
@@ -192,49 +192,49 @@ def screen_soft(
 ) -> SoftScreeningResult:
     """
     Apply soft ranking to pre-filtered products.
-    
+
     Args:
         filtered_ids: List of (product_id, option_id, unit_id) from hard screener
         soft_preferences: SoftPreferences dict with ranking criteria
         top_n: Number of top results to return
-        
+
     Returns:
         SoftScreeningResult with ranked products
     """
     input_count = len(filtered_ids)
     logger.info(f"Soft screening input: {input_count} product/option/unit combinations")
-    
+
     if not filtered_ids:
         return SoftScreeningResult(
             products=[],
             input_count=0,
             output_count=0,
         )
-    
+
     # Load products from database
     products_df = load_products_by_ids(filtered_ids)
     logger.info(f"Loaded {len(products_df)} products from database")
-    
+
     if products_df.empty:
         return SoftScreeningResult(
             products=[],
             input_count=input_count,
             output_count=0,
         )
-    
+
     # Apply soft ranking
     ranked_df = rank_by_preferences(products_df, soft_preferences, top_n)
-    
+
     # Convert to list of dicts
     products = ranked_df.to_dict(orient="records")
-    
+
     # Clean up vector field (not needed in output)
     for p in products:
         if "vector" in p:
             del p["vector"]
-    
+
     logger.info(f"Soft screening complete: {len(products)} ranked products")
-    
+
     return SoftScreeningResult(
         products=products,
         input_count=input_count,

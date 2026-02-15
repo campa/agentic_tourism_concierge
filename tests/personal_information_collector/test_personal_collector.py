@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from personal_information_collector.core import (
     COLLECTION_GUIDE,
     get_first_message,

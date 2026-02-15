@@ -1,10 +1,10 @@
 import json
 
 import chainlit as cl
+from core import get_first_message, get_system_instructions
 
 from common.llm_utils import extract_json, get_ai_response
 from common.logging_config import get_logger
-from core import get_first_message, get_system_instructions
 
 # Init - Module level vars
 logger = get_logger("personal_information_collector_app")

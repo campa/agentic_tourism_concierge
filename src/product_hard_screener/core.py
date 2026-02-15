@@ -45,10 +45,10 @@ def _get_embedding_model():
 @dataclass
 class HardScreeningResult:
     """Result from hard screening containing filtered product references."""
-    
+
     # List of (product_id, option_id, unit_id) tuples
     filtered_ids: list[tuple[str, str, str]]
-    
+
     # Metadata about filtering
     initial_count: int
     after_sql_count: int
@@ -206,7 +206,7 @@ def filter_by_semantic_exclusion(
     result = products.copy()
     result["exclusion_similarity"] = similarities
     result = result[result["exclusion_similarity"] < threshold]
-    
+
     excluded_count = len(products) - len(result)
     logger.info(f"Semantic exclusion: {len(products)} -> {len(result)} products ({excluded_count} excluded)")
     return result
@@ -215,29 +215,29 @@ def filter_by_semantic_exclusion(
 def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
     """
     Apply hard filtering to products and return matching IDs.
-    
+
     Args:
         hard_constraints: HardConstraints dict with filtering criteria
-        
+
     Returns:
         HardScreeningResult with filtered (product_id, option_id, unit_id) tuples
     """
     import os
-    
+
     # Connect to database
     db_path = os.path.join(os.getcwd(), DB_PATH)
     db = lancedb.connect(db_path)
     table = db.open_table(TABLE_NAME)
-    
+
     # Phase 1: SQL filtering
     where_clause = build_sql_where(hard_constraints)
     logger.info(f"Hard screening SQL WHERE: {where_clause}")
-    
+
     products_df = table.search().where(where_clause).to_pandas()
     initial_count = len(table.to_pandas())
     after_sql_count = len(products_df)
     logger.info(f"Phase 1 (SQL Filter): {initial_count} -> {after_sql_count} products")
-    
+
     if products_df.empty:
         return HardScreeningResult(
             filtered_ids=[],
@@ -246,16 +246,16 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
             after_proximity_count=0,
             after_exclusion_count=0,
         )
-    
+
     # Phase 2: Proximity filtering
     target_lat = hard_constraints.get("target_latitude")
     target_lon = hard_constraints.get("target_longitude")
-    
+
     # Fall back to accommodation coordinates if target not specified
     if target_lat is None or target_lon is None:
         target_lat = hard_constraints.get("accommodation_latitude")
         target_lon = hard_constraints.get("accommodation_longitude")
-    
+
     if target_lat is not None and target_lon is not None:
         products_df = filter_by_proximity(products_df, target_lat, target_lon)
         after_proximity_count = len(products_df)
@@ -263,7 +263,7 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
     else:
         after_proximity_count = after_sql_count
         logger.info("Phase 2 skipped: no target coordinates")
-    
+
     if products_df.empty:
         return HardScreeningResult(
             filtered_ids=[],
@@ -272,14 +272,14 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
             after_proximity_count=0,
             after_exclusion_count=0,
         )
-    
+
     # Phase 3: Semantic exclusion filtering
     semantic_exclusions = hard_constraints.get("semantic_exclusions", {})
     has_exclusions = any(
         terms for terms in semantic_exclusions.values()
         if terms and isinstance(terms, list)
     )
-    
+
     if has_exclusions:
         products_df = filter_by_semantic_exclusion(products_df, semantic_exclusions)
         after_exclusion_count = len(products_df)
@@ -287,7 +287,7 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
     else:
         after_exclusion_count = after_proximity_count
         logger.info("Phase 3 skipped: no semantic exclusions")
-    
+
     # Extract unique (product_id, option_id, unit_id) tuples
     if products_df.empty:
         filtered_ids = []
@@ -296,9 +296,9 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
             (row["product_id"], row["option_id"], row["unit_id"])
             for _, row in products_df.iterrows()
         ]
-    
+
     logger.info(f"Hard screening complete: {len(filtered_ids)} product/option/unit combinations")
-    
+
     return HardScreeningResult(
         filtered_ids=filtered_ids,
         initial_count=initial_count,
