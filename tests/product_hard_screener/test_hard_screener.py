@@ -2,6 +2,7 @@
 
 import pytest
 
+from conftest import requires_db
 from product_hard_screener.core import (
     HardScreeningResult,
     build_sql_where,
@@ -69,6 +70,7 @@ class TestHardScreenerCore:
         assert 390 < dist < 400  # ~394km
 
 
+@requires_db
 class TestHardScreenerIntegration:
     """Integration tests for hard screener with database."""
 

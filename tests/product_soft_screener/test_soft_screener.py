@@ -2,6 +2,7 @@
 
 import pytest
 
+from conftest import requires_db
 from product_hard_screener.core import screen_hard
 from product_soft_screener.core import (
     SoftScreeningResult,
@@ -38,6 +39,7 @@ class TestSoftScreenerCore:
         assert result.output_count == 0
 
 
+@requires_db
 class TestSoftScreenerIntegration:
     """Integration tests for soft screener with database."""
 
@@ -108,6 +110,7 @@ class TestSoftScreenerIntegration:
             assert "vector" not in product
 
 
+@requires_db
 class TestPipelineIntegration:
     """Tests for the full hard -> soft pipeline."""
 

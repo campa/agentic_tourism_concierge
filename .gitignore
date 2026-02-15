@@ -69,3 +69,5 @@ temp/
 
 # Data dir
 data/
+
+.kiro/
