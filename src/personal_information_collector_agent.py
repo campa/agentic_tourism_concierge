@@ -2,6 +2,11 @@ from datetime import date
 
 import ollama
 
+from logging_config import setup_logging
+
+# Constants
+LIST_OF_STRINGS = "list of strings"
+
 COLLECTION_GUIDE = {
     "full_name": {"hint": "Full Name", "type": "string"},
     "age": {"hint": "Age", "type": "integer"},
@@ -10,27 +15,30 @@ COLLECTION_GUIDE = {
         "hint": "Physical Activity Level (sedentary | moderate | active | athletic)",
         "type": "enum string",
     },
-    "sports": {"hint": "Liked Sports", "type": "list of strings"},
-    "accessibility": {"hint": "Accessibility Needs", "type": "list of strings"},
-    "diet": {"hint": "Dietary Preferences", "type": "list of strings"},
-    "interests": {"hint": "Personal Interests", "type": "list of strings"},
+    "sports": {"hint": "Liked Sports", "type": LIST_OF_STRINGS},
+    "accessibility": {"hint": "Accessibility Needs", "type": LIST_OF_STRINGS},
+    "diet": {"hint": "Dietary Preferences", "type": LIST_OF_STRINGS},
+    "interests": {"hint": "Personal Interests", "type": LIST_OF_STRINGS},
     "barriers": {
         "hint": "Issues or Fears or Hated that could limit activities",
-        "type": "list of strings",
+        "type": LIST_OF_STRINGS,
     },
     "fears": {
         "hint": "Fears, worries or dislikes that could limit activities",
-        "type": "list of strings",
+        "type": LIST_OF_STRINGS,
     },
     "medical": {
         "hint": "Allergies, medical conditions, or environmental sensitivities (like smoke)",
-        "type": "list of strings",
+        "type": LIST_OF_STRINGS,
     },
 }
 
 
 def chat_agent():
-    todayDate = date.today().strftime("%Y-%m-%d")
+    # Setup logging
+    logger = setup_logging()
+
+    today_date = date.today().strftime("%Y-%m-%d")
 
     # Helper to build the JSON schema string for the prompt
     schema_elements = [f'"{k}": ({v["type"]})' for k, v in COLLECTION_GUIDE.items()]
@@ -44,7 +52,7 @@ def chat_agent():
         {
             "role": "system",
             "content": f"""
-            Today's date is {todayDate}.
+            Today's date is {today_date}.
             You are a friendly Travel Intake Assistant for 'Agentic Tourism'.
             Your goal: Collect this info: {", ".join(COLLECTION_GUIDE.keys())}.
 
@@ -82,7 +90,7 @@ def chat_agent():
         }
     ]
 
-    print("--- Agent Started ---")
+    logger.info("Agent Started")
 
     # --- FIX: We send a 'user' prompt to trigger the 'assistant' intro ---
     # The user doesn't see this 'Hello', it just wakes up the agent.
@@ -100,8 +108,10 @@ def chat_agent():
     while True:
         user_input = input("User: ")
         if user_input.lower() in ["quit", "exit"]:
+            logger.info("User requested to quit")
             break
 
+        logger.debug(f"User input: {user_input}")
         messages.append({"role": "user", "content": user_input})
 
         # Get LLM Response
@@ -113,6 +123,7 @@ def chat_agent():
             # Display everything except the completion tag
             clean_display = assistant_msg.split("CONVERSATION_COMPLETE")[0].strip()
             print(f"\nAgent: {clean_display}")
+            logger.info("Data collection completed successfully")
             print("\n--- [System] Data Collection Finished. Moving to Step 2... ---")
             break
         else:

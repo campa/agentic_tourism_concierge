@@ -23,7 +23,7 @@ def setup_logging():
             }
         },
         "loggers": {
-            "agentic_tourism_concierge": {"level": "DEBUG"},
+            "personal_information_collector": {"level": "DEBUG"},
             "ollama": {"level": "DEBUG"}
         },
         "root": {"level": "INFO", "handlers": ["console"]},
@@ -31,4 +31,4 @@ def setup_logging():
 
     logging.config.dictConfig(logging_config)
 
-    return logging.getLogger("agentic_tourism_concierge")
+    return logging.getLogger("personal_information_collector")
