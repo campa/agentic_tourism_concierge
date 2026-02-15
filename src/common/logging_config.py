@@ -14,7 +14,7 @@ LOGGING_CONFIG = {
     "handlers": {
         "console": {
             "class": "rich.logging.RichHandler",
-            "level": "INFO",
+            "level": "DEBUG",
             "formatter": "rich",
             "show_time": True,
             "show_level": True,
