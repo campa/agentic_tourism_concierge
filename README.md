@@ -45,7 +45,7 @@ uv sync
 
 ### 3. Start the Application
 ```bash
-uv run streamlit run app.py
+uv run chainlit run src/personal_information_collector/app.py
 ```
 
 ---

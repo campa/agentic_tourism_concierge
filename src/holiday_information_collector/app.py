@@ -6,7 +6,7 @@ from core import extract_json, get_ai_response, get_first_message, get_system_in
 from common.logging_config import get_logger
 
 # Init - Module level vars
-logger = get_logger("personal_information_collector_app")
+logger = get_logger("holiday_information_collector_app")
 
 
 @cl.on_chat_start
