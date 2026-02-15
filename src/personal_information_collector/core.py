@@ -1,8 +1,9 @@
 from datetime import date
 
-from llm_utils import LIST_OF_STRINGS
-
 from common.logging_config import get_logger
+
+# Constants
+LIST_OF_STRINGS = "list of strings"
 
 # Constants
 COLLECTION_GUIDE = {

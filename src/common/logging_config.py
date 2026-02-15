@@ -24,15 +24,17 @@ LOGGING_CONFIG = {
     },
     "loggers": {
         # Personal Information Collector
-        "personal_information_collector_core": {"level": "DEBUG"},
-        "personal_information_collector_app": {"level": "DEBUG"},
+        "personal_information_collector": {"level": "DEBUG"},
         # Holiday Information Collector
-        "holiday_information_collector_core": {"level": "DEBUG"},
-        "holiday_information_collector_app": {"level": "DEBUG"},
-        # Products Screener
-        "products_screener_ingestor": {"level": "DEBUG"},
-        "products_screener_matcher": {"level": "DEBUG"},
-        "products_screener_synthesizer": {"level": "DEBUG"},
+        "holiday_information_collector": {"level": "DEBUG"},
+        # Product Screening Pipeline
+        "product_hard_screener": {"level": "DEBUG"},
+        "product_soft_screener": {"level": "DEBUG"},
+        "product_synthesizer": {"level": "DEBUG"},
+        "product_ingestor": {"level": "DEBUG"},
+        "products_screener_pipeline": {"level": "DEBUG"},
+        # Common utilities
+        "common_llm_utils": {"level": "DEBUG"},
         # External libraries
         "ollama": {"level": "DEBUG"},
         "httpx": {"level": "WARNING"},
@@ -49,7 +51,7 @@ def get_logger(logger_name: str) -> logging.Logger:
     Get a logger instance with the centralized configuration.
 
     Args:
-        logger_name: Name of the logger (e.g., 'products_screener_ingestor')
+        logger_name: Name of the logger (e.g., 'product_hard_screener')
 
     Returns:
         Configured logger instance
