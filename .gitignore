@@ -61,3 +61,8 @@ temp/
 .env
 .env.local
 
+# Chainlit
+.chainlit/translations/
+.chainlit/data/
+# DO NOT ignore config.toml if you want to share UI settings
+# .chainlit/config.toml

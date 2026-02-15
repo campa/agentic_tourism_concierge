@@ -1,12 +1,13 @@
+import json
 from datetime import date
 
 import ollama
-
-from logging_config import setup_logging
+from logging_config import get_logger
 
 # Constants
+LLM_MODEL="llama3.1:8b"
 LIST_OF_STRINGS = "list of strings"
-
+CONVERSATION_COMPLETE_MARKER = "CONVERSATION_COMPLETE"
 COLLECTION_GUIDE = {
     "full_name": {"hint": "Full Name", "type": "string"},
     "age": {"hint": "Age", "type": "integer"},
@@ -19,12 +20,8 @@ COLLECTION_GUIDE = {
     "accessibility": {"hint": "Accessibility Needs", "type": LIST_OF_STRINGS},
     "diet": {"hint": "Dietary Preferences", "type": LIST_OF_STRINGS},
     "interests": {"hint": "Personal Interests", "type": LIST_OF_STRINGS},
-    "barriers": {
-        "hint": "Issues or Fears or Hated that could limit activities",
-        "type": LIST_OF_STRINGS,
-    },
     "fears": {
-        "hint": "Fears, worries or dislikes that could limit activities",
+        "hint": "Fears, hated things, worries or dislikes that could limit activities",
         "type": LIST_OF_STRINGS,
     },
     "medical": {
@@ -33,11 +30,12 @@ COLLECTION_GUIDE = {
     },
 }
 
+# Init - Module level vars
+logger = get_logger("personal_information_collector_core")
 
-def chat_agent():
-    # Setup logging
-    logger = setup_logging()
-
+# Functions
+def get_system_instructions() -> str:
+    """Generate the dynamic System Prompt based on the COLLECTION_GUIDE."""
     today_date = date.today().strftime("%Y-%m-%d")
 
     # Helper to build the JSON schema string for the prompt
@@ -48,12 +46,11 @@ def chat_agent():
     hints_str = "\n".join([f"- {v['hint']}" for v in COLLECTION_GUIDE.values()])
 
     # Start with the system instructions
-    messages = [
-        {
+    system_prompt = f"""
             "role": "system",
-            "content": f"""
+            "content":"
             Today's date is {today_date}.
-            You are a friendly Travel Intake Assistant for 'Agentic Tourism'.
+            You are a friendly Travel Intake Assistant for 'Agentic Tourism Concierge service desk.'.
             Your goal: Collect this info: {", ".join(COLLECTION_GUIDE.keys())}.
 
             HINTS FOR COLLECTION:
@@ -75,60 +72,57 @@ def chat_agent():
 
             OPERATING PHASES:
             1. COLLECTION: Converse until all data points are known.
-            2. REVIEW: Once all info is gathered, present a tidy bulleted list of everything you've recorded.
+            2. REVIEW: Once all info is gathered, present a compact two-column summary of everything you've recorded.
+                Present the summary in a compact table format:
+                ┌─────────────────────┬──────────────────────────────┐
+                │ Full Name           │ [name]                       │
+                │ Age                 │ [age]                        │
+                │ Language            │ [languages]                  │
+                │ Activity Level      │ [level]                      │
+                │ Favorite Activities │ [sports]                     │
+                │ Accessibility       │ [needs]                      │
+                │ Diet                │ [preferences]                │
+                │ Interests           │ [interests]                  │
+                │ Concerns            │ [fears/barriers]             │
+                │ Medical/Allergies   │ [conditions]                 │
+                └─────────────────────┴──────────────────────────────┘
+
                Ask: "Is this all correct, or would you like to change anything?"
                If a piece of information was not provided, mark it as 'Not specified'
-            3. CORRECTION: If the user wants to fix something, update your record and show the revised list.
+            3. CORRECTION: If the user wants to fix something, update your record and show the revised compact summary.
                When a user fixes a detail, update only the specific part mentioned. Retain all other previously collected information in that category.
-               Show the full updated list immediately.
+               Show the full updated summary immediately. Do not ask again for questions that have already been answered and were not requested to be changed.
 
             FINAL TRIGGER:
             - ONLY when the user gives a final "Yes" or "Confirm", say exactly: "CONVERSATION_COMPLETE" followed by the JSON summary.
             - Immediately follow with the data in this exact JSON schema:
             {json_schema_instruction}
-            """,
-        }
-    ]
+            "
+            """
 
-    logger.info("Agent Started")
+    return system_prompt
 
-    # --- FIX: We send a 'user' prompt to trigger the 'assistant' intro ---
-    # The user doesn't see this 'Hello', it just wakes up the agent.
-    first_input = {"role": "user", "content": "Hello, I'm ready to start the intake."}
-    messages.append(first_input)
+def get_first_message() -> str:
+    """Generate the first message to start the conversation."""
+    ## The user doesn't see this 'Hello', it just wakes up the agent.
+    return "Hello, I'm ready to start the intake"
 
-    response = ollama.chat(model="llama3.1:8b", messages=messages)
-    assistant_msg = response["message"]["content"]
+def get_ai_response(messages):
+    """Interface to the chat model"""
+    response = ollama.chat(model=LLM_MODEL, messages=messages)
+    return response["message"]["content"]
 
-    # Add the intro to history and print it
-    messages.append({"role": "assistant", "content": assistant_msg})
-    print(f"Agent: {assistant_msg}")
-
-    # --- Now enter the normal loop ---
-    while True:
-        user_input = input("User: ")
-        if user_input.lower() in ["quit", "exit"]:
-            logger.info("User requested to quit")
-            break
-
-        logger.debug(f"User input: {user_input}")
-        messages.append({"role": "user", "content": user_input})
-
-        # Get LLM Response
-        response = ollama.chat(model="llama3.1:8b", messages=messages)
-        assistant_msg = response["message"]["content"]
-        messages.append({"role": "assistant", "content": assistant_msg})
-
-        if "CONVERSATION_COMPLETE" in assistant_msg:
-            # Display everything except the completion tag
-            clean_display = assistant_msg.split("CONVERSATION_COMPLETE")[0].strip()
-            print(f"\nAgent: {clean_display}")
-            logger.info("Data collection completed successfully")
-            print("\n--- [System] Data Collection Finished. Moving to Step 2... ---")
-            break
-        else:
-            print(f"Agent: {assistant_msg}")
-
-
-if __name__ == "__main__":
-    chat_agent()
+def extract_json(assistant_msg):
+    """Extract JSON if the conversation is finished"""
+    logger.debug(f"extract_json called with: {assistant_msg}")
+    if CONVERSATION_COMPLETE_MARKER in assistant_msg:
+        try:
+            parts = assistant_msg.split(CONVERSATION_COMPLETE_MARKER)
+            text_part = parts[0].strip()
+            # Clean up to capture pure JSON
+            json_part = parts[1].strip().replace("```json", "").replace("```", "")
+            return text_part, json.loads(json_part)
+        except Exception as e:
+            logger.error(f"Failed to extract JSON from assistant message: {e}", exc_info=True)
+            return assistant_msg, None
+    return assistant_msg, None
