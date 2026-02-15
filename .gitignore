@@ -2,14 +2,7 @@
 .DS_Store
 
 # Project-specific data
-product-catalog-search/cache/
-product-catalog-search/normalized_catalog/
-product-catalog-search/raw_jsons/
-.product-catalog-search/
-
-# Generated output files
-output/
-.output/
+rewrite-fixed-dates.sh
 
 # Python build artifacts
 __pycache__/
@@ -67,4 +60,4 @@ temp/
 # Environment variables
 .env
 .env.local
-docs-to-be-used/
+
