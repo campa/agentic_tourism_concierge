@@ -20,9 +20,10 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
+from conftest import requires_db
+
 from common.config import TOP_RESULTS_COUNT
 from common.pipeline import screen_products
-from conftest import requires_db
 from product_synthesizer.types import (
     HardConstraints,
     SemanticExclusions,
@@ -72,7 +73,9 @@ def print_profile(profile: SynthesizerOutput) -> None:
     print("HARD CONSTRAINTS:")
     print(f"  Country: {hard.get('country')}")
     print(f"  Target Location: ({hard.get('target_latitude')}, {hard.get('target_longitude')})")
-    print(f"  Accommodation: ({hard.get('accommodation_latitude')}, {hard.get('accommodation_longitude')})")
+    print(
+        f"  Accommodation: ({hard.get('accommodation_latitude')}, {hard.get('accommodation_longitude')})"
+    )
     print(f"  Holiday Dates: {hard.get('holiday_begin_date')} to {hard.get('holiday_end_date')}")
     print(f"  Age: {hard.get('age')}")
     print(f"  Max Pax: {hard.get('max_pax')}")
@@ -140,7 +143,15 @@ def verify_no_stairs_towers(products: list[dict]) -> tuple[bool, list[str]]:
         Tuple of (passed, violations) where violations is a list of product titles
         that contain forbidden terms.
     """
-    forbidden_terms = ["stairs", "steps", "climbing", "tower", "rooftop", "heights", "observation deck"]
+    forbidden_terms = [
+        "stairs",
+        "steps",
+        "climbing",
+        "tower",
+        "rooftop",
+        "heights",
+        "observation deck",
+    ]
     violations = []
 
     for product in products:
@@ -181,7 +192,15 @@ class TestHybridScreenerE2E:
                     accessibility=["stairs", "steps", "climbing", "steep"],
                     diet=[],
                     medical=[],
-                    fears=["heights", "tower", "rooftop", "cliff", "balcony", "high", "observation deck"],
+                    fears=[
+                        "heights",
+                        "tower",
+                        "rooftop",
+                        "cliff",
+                        "balcony",
+                        "high",
+                        "observation deck",
+                    ],
                 ),
             ),
             soft_preferences=SoftPreferences(
@@ -232,7 +251,9 @@ class TestHybridScreenerE2E:
 
         # Print results for manual inspection
         print_profile(venice_profile)
-        print(f"\nHard result: {result.hard_result.initial_count} -> {result.hard_result.after_exclusion_count}")
+        print(
+            f"\nHard result: {result.hard_result.initial_count} -> {result.hard_result.after_exclusion_count}"
+        )
         print_results(result.products)
 
     def test_results_respect_constraints(self, venice_profile):
@@ -244,7 +265,9 @@ class TestHybridScreenerE2E:
         for product in products:
             # Country should match
             if "country" in product:
-                assert product["country"] == "IT", f"Product {product.get('title')} has wrong country"
+                assert product["country"] == "IT", (
+                    f"Product {product.get('title')} has wrong country"
+                )
 
             # Relevance scores should be valid
             if "relevance_score" in product:
@@ -278,14 +301,18 @@ class TestHybridScreenerE2E:
             pytest.skip("Not enough products to verify ordering")
 
         scores = [p.get("relevance_score", 0) for p in products]
-        assert scores == sorted(scores, reverse=True), "Results should be ordered by relevance descending"
+        assert scores == sorted(scores, reverse=True), (
+            "Results should be ordered by relevance descending"
+        )
 
     def test_max_results_count(self, venice_profile):
         """Test that at most TOP_RESULTS_COUNT products are returned."""
         result = screen_products(venice_profile)
         products = result.products
 
-        assert len(products) <= TOP_RESULTS_COUNT, f"Should return at most {TOP_RESULTS_COUNT} products"
+        assert len(products) <= TOP_RESULTS_COUNT, (
+            f"Should return at most {TOP_RESULTS_COUNT} products"
+        )
 
 
 @requires_db
@@ -334,7 +361,9 @@ class TestHybridScreenerWithRomeData:
         result = screen_products(rome_profile)
 
         print_profile(rome_profile)
-        print(f"\nHard: {result.hard_result.initial_count} -> {result.hard_result.after_exclusion_count}")
+        print(
+            f"\nHard: {result.hard_result.initial_count} -> {result.hard_result.after_exclusion_count}"
+        )
         print_results(result.products)
 
         assert result.products is not None
@@ -359,10 +388,14 @@ class TestHybridScreenerWithRomeData:
                 break
 
         if colosseum:
-            print(f"\nColosseum found with relevance score: {colosseum.get('relevance_score', 'N/A')}")
+            print(
+                f"\nColosseum found with relevance score: {colosseum.get('relevance_score', 'N/A')}"
+            )
             # Colosseum should have a decent relevance score for history preferences
             if "relevance_score" in colosseum:
-                assert colosseum["relevance_score"] > 0.3, "Colosseum should have reasonable relevance for history"
+                assert colosseum["relevance_score"] > 0.3, (
+                    "Colosseum should have reasonable relevance for history"
+                )
 
 
 def run_e2e_test():

@@ -77,7 +77,6 @@ def _extract_faq_text(faqs: list[dict] | None) -> str:
     return " ".join(faq_parts)
 
 
-
 def run_ingestion(json_file_path: str) -> None:
     """
     Ingest OCTO specification JSON into a flattened LanceDB table.

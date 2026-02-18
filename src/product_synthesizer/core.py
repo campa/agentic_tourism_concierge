@@ -131,7 +131,6 @@ def _extract_city_from_location(location: str) -> str | None:
     return location.strip()
 
 
-
 def synthesize_profile(
     personal_info: dict, holiday_info: dict
 ) -> SynthesizerOutput | SynthesizerError:
@@ -220,8 +219,12 @@ def synthesize_profile(
         "country": llm_hard.get("country"),
         "target_latitude": target_coords["latitude"] if target_coords else None,
         "target_longitude": target_coords["longitude"] if target_coords else None,
-        "accommodation_latitude": accommodation_coords["latitude"] if accommodation_coords else None,
-        "accommodation_longitude": accommodation_coords["longitude"] if accommodation_coords else None,
+        "accommodation_latitude": accommodation_coords["latitude"]
+        if accommodation_coords
+        else None,
+        "accommodation_longitude": accommodation_coords["longitude"]
+        if accommodation_coords
+        else None,
         "holiday_begin_date": llm_hard.get("holiday_begin_date"),
         "holiday_end_date": llm_hard.get("holiday_end_date"),
         "not_available_date_times": llm_hard.get("not_available_date_times", []),

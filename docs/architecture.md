@@ -107,5 +107,35 @@ PROXIMITY_RADIUS_KM = 20.0           # Max distance from target
 SEMANTIC_EXCLUSION_THRESHOLD = 0.7   # Similarity cutoff for exclusions
 TOP_RESULTS_COUNT = 5                # Final results count
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
-LLM_MODEL = "llama3.1:8b"
+LLM_MODEL = "qwen3:8b"
 ```
+
+## Observability
+
+LLM calls emit OpenTelemetry metrics via OTLP to a local collector. The metrics stack runs in Docker (`metrics/` directory):
+
+```
+App ──OTLP──► OTEL Collector ──► Prometheus ──► Grafana
+```
+
+Tracked metrics per LLM call:
+- TTFT (time to first token)
+- Total duration
+- Generation duration
+- Tokens per second
+- Prompt / completion token counts
+
+Each metric is tagged with `caller` (which function made the call) and `model`.
+
+The stack runs via Docker Compose (`metrics/` directory):
+
+```
+metrics/
+├── docker-compose.otel.yml              # OTEL Collector + Prometheus + Grafana
+├── otel-collector-config.yml            # Receives OTLP, exports to Prometheus
+├── prometheus.yml                       # Scrapes OTEL Collector
+└── grafana/provisioning/datasources/
+    └── prometheus.yml                   # Auto-configures Prometheus data source
+```
+
+Grafana is pre-configured with the Prometheus data source via provisioning, no manual setup needed.

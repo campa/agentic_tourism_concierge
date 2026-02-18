@@ -14,4 +14,6 @@ def _db_exists() -> bool:
 
 
 # Skip marker for tests requiring database
-requires_db = pytest.mark.skipif(not _db_exists(), reason="Database not found - run ingestion first")
+requires_db = pytest.mark.skipif(
+    not _db_exists(), reason="Database not found - run ingestion first"
+)

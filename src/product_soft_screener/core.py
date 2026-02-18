@@ -39,7 +39,10 @@ def _get_embedding_model():
     global _embedding_model
     if _embedding_model is None:
         from lancedb.embeddings import get_registry
-        _embedding_model = get_registry().get("sentence-transformers").create(name=EMBEDDING_MODEL_NAME)
+
+        _embedding_model = (
+            get_registry().get("sentence-transformers").create(name=EMBEDDING_MODEL_NAME)
+        )
     return _embedding_model
 
 
@@ -65,9 +68,7 @@ class SoftScreeningResult:
     output_count: int
 
 
-def load_products_by_ids(
-    filtered_ids: list[tuple[str, str, str]]
-) -> pd.DataFrame:
+def load_products_by_ids(filtered_ids: list[tuple[str, str, str]]) -> pd.DataFrame:
     """
     Load products from database by their (product_id, option_id, unit_id) tuples.
 
@@ -92,8 +93,7 @@ def load_products_by_ids(
 
     # Filter to matching rows
     mask = all_products.apply(
-        lambda row: (row["product_id"], row["option_id"], row["unit_id"]) in id_set,
-        axis=1
+        lambda row: (row["product_id"], row["option_id"], row["unit_id"]) in id_set, axis=1
     )
 
     return all_products[mask].copy()

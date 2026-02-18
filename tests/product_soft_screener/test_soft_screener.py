@@ -1,8 +1,8 @@
 """Tests for the Product Soft Screener Agent."""
 
 import pytest
-
 from conftest import requires_db
+
 from product_hard_screener.core import screen_hard
 from product_soft_screener.core import (
     SoftScreeningResult,

@@ -11,9 +11,9 @@ Tests:
 import numpy as np
 import pandas as pd
 import pytest
+from conftest import requires_db
 
 from common.config import PROXIMITY_RADIUS_KM, SEMANTIC_EXCLUSION_THRESHOLD, TOP_RESULTS_COUNT
-from conftest import requires_db
 from product_hard_screener.core import (
     build_sql_where,
     filter_by_proximity,
@@ -135,22 +135,24 @@ class TestProximityFilter:
         target_lat, target_lon = 45.4408, 12.3155
 
         # Create test products - one in Venice, one in Rome
-        products = pd.DataFrame([
-            {
-                "product_id": "venice-tour",
-                "title": "Venice Boat Tour",
-                "latitude": 45.4371,  # Very close to Venice center
-                "longitude": 12.3326,
-                "location": "Venice",
-            },
-            {
-                "product_id": "rome-tour",
-                "title": "Rome Walking Tour",
-                "latitude": 41.9028,  # Rome - far from Venice
-                "longitude": 12.4964,
-                "location": "Rome",
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "venice-tour",
+                    "title": "Venice Boat Tour",
+                    "latitude": 45.4371,  # Very close to Venice center
+                    "longitude": 12.3326,
+                    "location": "Venice",
+                },
+                {
+                    "product_id": "rome-tour",
+                    "title": "Rome Walking Tour",
+                    "latitude": 41.9028,  # Rome - far from Venice
+                    "longitude": 12.4964,
+                    "location": "Rome",
+                },
+            ]
+        )
 
         result = filter_by_proximity(products, target_lat, target_lon, radius_km=20.0)
 
@@ -166,15 +168,17 @@ class TestProximityFilter:
         target_lat, target_lon = 45.4408, 12.3155
 
         # Create test product in Rome (far from Venice)
-        products = pd.DataFrame([
-            {
-                "product_id": "rome-tour",
-                "title": "Rome Walking Tour",
-                "latitude": 41.9028,
-                "longitude": 12.4964,
-                "location": "Rome",
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "rome-tour",
+                    "title": "Rome Walking Tour",
+                    "latitude": 41.9028,
+                    "longitude": 12.4964,
+                    "location": "Rome",
+                },
+            ]
+        )
 
         result = filter_by_proximity(products, target_lat, target_lon, radius_km=20.0)
 
@@ -200,20 +204,22 @@ class TestSemanticExclusionFilter:
         # Generate mock embeddings that simulate semantic similarity
         # For testing, we'll use simple vectors where similarity can be controlled
         stairs_vector = np.array([1.0, 0.0, 0.0, 0.0] * 96)  # 384 dims
-        boat_vector = np.array([0.0, 1.0, 0.0, 0.0] * 96)    # 384 dims
+        boat_vector = np.array([0.0, 1.0, 0.0, 0.0] * 96)  # 384 dims
 
-        products = pd.DataFrame([
-            {
-                "product_id": "tower-climb",
-                "title": "Tower Climbing Experience",
-                "vector": stairs_vector.tolist(),
-            },
-            {
-                "product_id": "boat-tour",
-                "title": "Relaxing Boat Tour",
-                "vector": boat_vector.tolist(),
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "tower-climb",
+                    "title": "Tower Climbing Experience",
+                    "vector": stairs_vector.tolist(),
+                },
+                {
+                    "product_id": "boat-tour",
+                    "title": "Relaxing Boat Tour",
+                    "vector": boat_vector.tolist(),
+                },
+            ]
+        )
 
         exclusions: SemanticExclusions = {
             "accessibility": ["stairs", "steps", "climbing"],
@@ -231,18 +237,20 @@ class TestSemanticExclusionFilter:
 
     def test_filter_no_exclusions_keeps_all(self):
         """Test semantic exclusion with no terms keeps all products."""
-        products = pd.DataFrame([
-            {
-                "product_id": "tour-1",
-                "title": "Tour 1",
-                "vector": [0.1] * 384,
-            },
-            {
-                "product_id": "tour-2",
-                "title": "Tour 2",
-                "vector": [0.2] * 384,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "tour-1",
+                    "title": "Tour 1",
+                    "vector": [0.1] * 384,
+                },
+                {
+                    "product_id": "tour-2",
+                    "title": "Tour 2",
+                    "vector": [0.2] * 384,
+                },
+            ]
+        )
 
         exclusions: SemanticExclusions = {
             "accessibility": [],
@@ -351,8 +359,10 @@ class TestIntegrationWithDatabase:
 
         # Rome Colosseum product should be included
         assert len(result) >= 1, "Rome product should be within 20km of Rome center"
-        assert any("Rome" in str(row.get("location", "")) or "Colosseum" in str(row.get("title", ""))
-                   for _, row in result.iterrows())
+        assert any(
+            "Rome" in str(row.get("location", "")) or "Colosseum" in str(row.get("title", ""))
+            for _, row in result.iterrows()
+        )
 
     def test_semantic_exclusion_with_stairs(self, db_products):
         """Test semantic exclusion with 'stairs' exclusion on actual data."""
@@ -422,14 +432,16 @@ class TestSemanticRanking:
 
     def test_rank_by_preferences_no_preference_text(self):
         """Test ranking with no preference text uses interests and notes."""
-        products = pd.DataFrame([
-            {
-                "product_id": "tour-1",
-                "title": "Tour 1",
-                "vector": [0.1] * 384,
-                "price_amount": 5000,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "tour-1",
+                    "title": "Tour 1",
+                    "vector": [0.1] * 384,
+                    "price_amount": 5000,
+                },
+            ]
+        )
 
         preferences: SoftPreferences = {
             "preference_text": "",
@@ -449,15 +461,17 @@ class TestSemanticRanking:
     def test_rank_by_preferences_returns_top_n(self):
         """Test ranking returns at most top N results."""
         # Create 10 products
-        products = pd.DataFrame([
-            {
-                "product_id": f"tour-{i}",
-                "title": f"Tour {i}",
-                "vector": [0.1 * i] * 384,
-                "price_amount": 1000 * i,
-            }
-            for i in range(1, 11)
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": f"tour-{i}",
+                    "title": f"Tour {i}",
+                    "vector": [0.1 * i] * 384,
+                    "price_amount": 1000 * i,
+                }
+                for i in range(1, 11)
+            ]
+        )
 
         preferences: SoftPreferences = {
             "preference_text": "romantic boat tour history art",
@@ -475,20 +489,22 @@ class TestSemanticRanking:
 
     def test_rank_by_preferences_scores_in_range(self):
         """Test all relevance scores are in [0.0, 1.0] range."""
-        products = pd.DataFrame([
-            {
-                "product_id": "tour-1",
-                "title": "Venice Boat Tour",
-                "vector": [0.5] * 384,
-                "price_amount": 5000,
-            },
-            {
-                "product_id": "tour-2",
-                "title": "Rome Walking Tour",
-                "vector": [0.3] * 384,
-                "price_amount": 8000,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "tour-1",
+                    "title": "Venice Boat Tour",
+                    "vector": [0.5] * 384,
+                    "price_amount": 5000,
+                },
+                {
+                    "product_id": "tour-2",
+                    "title": "Rome Walking Tour",
+                    "vector": [0.3] * 384,
+                    "price_amount": 8000,
+                },
+            ]
+        )
 
         preferences: SoftPreferences = {
             "preference_text": "romantic boat tour",
@@ -506,26 +522,28 @@ class TestSemanticRanking:
 
     def test_rank_by_preferences_descending_order(self):
         """Test results are ordered by relevance_score descending."""
-        products = pd.DataFrame([
-            {
-                "product_id": "tour-1",
-                "title": "Tour 1",
-                "vector": [0.1] * 384,
-                "price_amount": 5000,
-            },
-            {
-                "product_id": "tour-2",
-                "title": "Tour 2",
-                "vector": [0.5] * 384,
-                "price_amount": 3000,
-            },
-            {
-                "product_id": "tour-3",
-                "title": "Tour 3",
-                "vector": [0.3] * 384,
-                "price_amount": 7000,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "tour-1",
+                    "title": "Tour 1",
+                    "vector": [0.1] * 384,
+                    "price_amount": 5000,
+                },
+                {
+                    "product_id": "tour-2",
+                    "title": "Tour 2",
+                    "vector": [0.5] * 384,
+                    "price_amount": 3000,
+                },
+                {
+                    "product_id": "tour-3",
+                    "title": "Tour 3",
+                    "vector": [0.3] * 384,
+                    "price_amount": 7000,
+                },
+            ]
+        )
 
         preferences: SoftPreferences = {
             "preference_text": "romantic boat tour",
@@ -545,26 +563,28 @@ class TestSemanticRanking:
     def test_rank_by_preferences_deduplicates_by_product_id(self):
         """Test ranking deduplicates by product_id, keeping highest score."""
         # Create products with duplicate product_ids
-        products = pd.DataFrame([
-            {
-                "product_id": "tour-1",
-                "title": "Tour 1 Option A",
-                "vector": [0.5] * 384,
-                "price_amount": 5000,
-            },
-            {
-                "product_id": "tour-1",  # Duplicate
-                "title": "Tour 1 Option B",
-                "vector": [0.3] * 384,
-                "price_amount": 3000,
-            },
-            {
-                "product_id": "tour-2",
-                "title": "Tour 2",
-                "vector": [0.4] * 384,
-                "price_amount": 6000,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "tour-1",
+                    "title": "Tour 1 Option A",
+                    "vector": [0.5] * 384,
+                    "price_amount": 5000,
+                },
+                {
+                    "product_id": "tour-1",  # Duplicate
+                    "title": "Tour 1 Option B",
+                    "vector": [0.3] * 384,
+                    "price_amount": 3000,
+                },
+                {
+                    "product_id": "tour-2",
+                    "title": "Tour 2",
+                    "vector": [0.4] * 384,
+                    "price_amount": 6000,
+                },
+            ]
+        )
 
         preferences: SoftPreferences = {
             "preference_text": "romantic boat tour",
@@ -656,32 +676,34 @@ class TestFullPipelineVeniceExample:
     def test_proximity_filter_with_venice_target(self, venice_hard_constraints):
         """Test Phase 1b: Proximity filter with Venice coordinates."""
         # Create test products at different distances from Venice
-        products = pd.DataFrame([
-            {
-                "product_id": "venice-gondola",
-                "title": "Venice Gondola Ride",
-                "latitude": 45.4371,  # ~1.5km from Venice center
-                "longitude": 12.3326,
-                "location": "Venice",
-                "country": "IT",
-            },
-            {
-                "product_id": "murano-glass",
-                "title": "Murano Glass Workshop",
-                "latitude": 45.4583,  # ~5km from Venice center (Murano island)
-                "longitude": 12.3533,
-                "location": "Murano",
-                "country": "IT",
-            },
-            {
-                "product_id": "rome-colosseum",
-                "title": "Rome Colosseum Tour",
-                "latitude": 41.8902,  # ~394km from Venice
-                "longitude": 12.4922,
-                "location": "Rome",
-                "country": "IT",
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "venice-gondola",
+                    "title": "Venice Gondola Ride",
+                    "latitude": 45.4371,  # ~1.5km from Venice center
+                    "longitude": 12.3326,
+                    "location": "Venice",
+                    "country": "IT",
+                },
+                {
+                    "product_id": "murano-glass",
+                    "title": "Murano Glass Workshop",
+                    "latitude": 45.4583,  # ~5km from Venice center (Murano island)
+                    "longitude": 12.3533,
+                    "location": "Murano",
+                    "country": "IT",
+                },
+                {
+                    "product_id": "rome-colosseum",
+                    "title": "Rome Colosseum Tour",
+                    "latitude": 41.8902,  # ~394km from Venice
+                    "longitude": 12.4922,
+                    "location": "Rome",
+                    "country": "IT",
+                },
+            ]
+        )
 
         target_lat = venice_hard_constraints["target_latitude"]
         target_lon = venice_hard_constraints["target_longitude"]
@@ -716,20 +738,22 @@ class TestFullPipelineVeniceExample:
         boat_embedding = model.generate_embeddings([boat_text])[0]
         tower_embedding = model.generate_embeddings([tower_text])[0]
 
-        products = pd.DataFrame([
-            {
-                "product_id": "gondola-ride",
-                "title": "Venice Gondola Ride",
-                "search_text": boat_text,
-                "vector": boat_embedding,
-            },
-            {
-                "product_id": "bell-tower",
-                "title": "Bell Tower Climb",
-                "search_text": tower_text,
-                "vector": tower_embedding,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "gondola-ride",
+                    "title": "Venice Gondola Ride",
+                    "search_text": boat_text,
+                    "vector": boat_embedding,
+                },
+                {
+                    "product_id": "bell-tower",
+                    "title": "Bell Tower Climb",
+                    "search_text": tower_text,
+                    "vector": tower_embedding,
+                },
+            ]
+        )
 
         exclusions = venice_hard_constraints["semantic_exclusions"]
         result = filter_by_semantic_exclusion(products, exclusions)
@@ -744,9 +768,13 @@ class TestFullPipelineVeniceExample:
 
         # Verify the gondola ride has lower similarity than the tower climb
         if len(result) == 2:
-            gondola_sim = result[result["product_id"] == "gondola-ride"]["exclusion_similarity"].iloc[0]
+            gondola_sim = result[result["product_id"] == "gondola-ride"][
+                "exclusion_similarity"
+            ].iloc[0]
             tower_sim = result[result["product_id"] == "bell-tower"]["exclusion_similarity"].iloc[0]
-            assert gondola_sim < tower_sim, "Gondola should have lower exclusion similarity than tower"
+            assert gondola_sim < tower_sim, (
+                "Gondola should have lower exclusion similarity than tower"
+            )
 
     def test_semantic_ranking_prefers_boat_tours(self, venice_soft_preferences):
         """Test Phase 2: Semantic ranking works correctly for Venice preferences."""
@@ -765,29 +793,31 @@ class TestFullPipelineVeniceExample:
         walking_embedding = model.generate_embeddings([walking_text])[0]
         museum_embedding = model.generate_embeddings([museum_text])[0]
 
-        products = pd.DataFrame([
-            {
-                "product_id": "gondola-sunset",
-                "title": "Sunset Gondola Ride",
-                "search_text": boat_text,
-                "vector": boat_embedding,
-                "price_amount": 8000,
-            },
-            {
-                "product_id": "rome-walking",
-                "title": "Rome Walking Tour",
-                "search_text": walking_text,
-                "vector": walking_embedding,
-                "price_amount": 4500,
-            },
-            {
-                "product_id": "art-museum",
-                "title": "Art Museum Tour",
-                "search_text": museum_text,
-                "vector": museum_embedding,
-                "price_amount": 5000,
-            },
-        ])
+        products = pd.DataFrame(
+            [
+                {
+                    "product_id": "gondola-sunset",
+                    "title": "Sunset Gondola Ride",
+                    "search_text": boat_text,
+                    "vector": boat_embedding,
+                    "price_amount": 8000,
+                },
+                {
+                    "product_id": "rome-walking",
+                    "title": "Rome Walking Tour",
+                    "search_text": walking_text,
+                    "vector": walking_embedding,
+                    "price_amount": 4500,
+                },
+                {
+                    "product_id": "art-museum",
+                    "title": "Art Museum Tour",
+                    "search_text": museum_text,
+                    "vector": museum_embedding,
+                    "price_amount": 5000,
+                },
+            ]
+        )
 
         result = rank_by_preferences(products, venice_soft_preferences)
 
@@ -807,8 +837,9 @@ class TestFullPipelineVeniceExample:
         museum_score = result[result["product_id"] == "art-museum"]["relevance_score"].iloc[0]
 
         # Walking tour should rank lower than at least one of the relaxing options
-        assert walking_score < max(gondola_score, museum_score), \
+        assert walking_score < max(gondola_score, museum_score), (
             f"Walking tour ({walking_score:.3f}) should rank lower than relaxing options"
+        )
 
         # All products should have meaningful relevance scores (not all zeros)
         assert any(s > 0.5 for s in scores), "At least one product should have relevance > 0.5"
@@ -922,4 +953,6 @@ class TestFullPipelineVeniceExample:
                 print(f"  [{record.levelname}] {record.message}")
 
         # Verify key log messages are present
-        assert "Hard screening" in log_text or "SQL" in log_text, "Hard screening logging should occur"
+        assert "Hard screening" in log_text or "SQL" in log_text, (
+            "Hard screening logging should occur"
+        )

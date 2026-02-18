@@ -38,7 +38,10 @@ def _get_embedding_model():
     global _embedding_model
     if _embedding_model is None:
         from lancedb.embeddings import get_registry
-        _embedding_model = get_registry().get("sentence-transformers").create(name=EMBEDDING_MODEL_NAME)
+
+        _embedding_model = (
+            get_registry().get("sentence-transformers").create(name=EMBEDDING_MODEL_NAME)
+        )
     return _embedding_model
 
 
@@ -65,7 +68,10 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     delta_lat = np.radians(lat2 - lat1)
     delta_lon = np.radians(lon2 - lon1)
 
-    a = np.sin(delta_lat / 2) ** 2 + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(delta_lon / 2) ** 2
+    a = (
+        np.sin(delta_lat / 2) ** 2
+        + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(delta_lon / 2) ** 2
+    )
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
 
     return R * c
@@ -144,7 +150,9 @@ def filter_by_proximity(
     result["distance_km"] = distances
     result = result[result["distance_km"] <= radius_km]
 
-    logger.info(f"Proximity filter: {len(products)} -> {len(result)} products (within {radius_km}km)")
+    logger.info(
+        f"Proximity filter: {len(products)} -> {len(result)} products (within {radius_km}km)"
+    )
     return result
 
 
@@ -195,7 +203,9 @@ def filter_by_semantic_exclusion(
     similarities = []
     for _, row in products.iterrows():
         product_vector = row.get("vector")
-        if product_vector is None or (isinstance(product_vector, (list, np.ndarray)) and len(product_vector) == 0):
+        if product_vector is None or (
+            isinstance(product_vector, (list, np.ndarray)) and len(product_vector) == 0
+        ):
             similarities.append(0.0)
             continue
 
@@ -208,7 +218,9 @@ def filter_by_semantic_exclusion(
     result = result[result["exclusion_similarity"] < threshold]
 
     excluded_count = len(products) - len(result)
-    logger.info(f"Semantic exclusion: {len(products)} -> {len(result)} products ({excluded_count} excluded)")
+    logger.info(
+        f"Semantic exclusion: {len(products)} -> {len(result)} products ({excluded_count} excluded)"
+    )
     return result
 
 
@@ -259,7 +271,9 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
     if target_lat is not None and target_lon is not None:
         products_df = filter_by_proximity(products_df, target_lat, target_lon)
         after_proximity_count = len(products_df)
-        logger.info(f"Phase 2 (Proximity Filter): {after_sql_count} -> {after_proximity_count} products")
+        logger.info(
+            f"Phase 2 (Proximity Filter): {after_sql_count} -> {after_proximity_count} products"
+        )
     else:
         after_proximity_count = after_sql_count
         logger.info("Phase 2 skipped: no target coordinates")
@@ -276,14 +290,15 @@ def screen_hard(hard_constraints: HardConstraints) -> HardScreeningResult:
     # Phase 3: Semantic exclusion filtering
     semantic_exclusions = hard_constraints.get("semantic_exclusions", {})
     has_exclusions = any(
-        terms for terms in semantic_exclusions.values()
-        if terms and isinstance(terms, list)
+        terms for terms in semantic_exclusions.values() if terms and isinstance(terms, list)
     )
 
     if has_exclusions:
         products_df = filter_by_semantic_exclusion(products_df, semantic_exclusions)
         after_exclusion_count = len(products_df)
-        logger.info(f"Phase 3 (Semantic Exclusion): {after_proximity_count} -> {after_exclusion_count} products")
+        logger.info(
+            f"Phase 3 (Semantic Exclusion): {after_proximity_count} -> {after_exclusion_count} products"
+        )
     else:
         after_exclusion_count = after_proximity_count
         logger.info("Phase 3 skipped: no semantic exclusions")

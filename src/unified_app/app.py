@@ -2,14 +2,15 @@
 Unified Chainlit Application for Agentic Tourism Concierge.
 
 This module provides a single Chainlit application that orchestrates
-the complete pipeline: Personal Collector → Holiday Collector →
-Synthesizer → Hard Screener → Soft Screener → Results.
+the complete pipeline: Personal Collector → Stay Details Collector →
+Synthesizer → Hard Screener → Soft Screener → Experience Recommendations.
 
 All business logic is delegated to the orchestration adapter layer.
 """
 
 import chainlit as cl
 
+from common.llm_utils import CONVERSATION_COMPLETE_MARKER
 from common.logging_config import get_logger
 from unified_app.formatting import format_progress
 from unified_app.orchestration import (
@@ -80,6 +81,7 @@ async def start():
         await loading_msg.send()
 
         from common.llm_utils import get_ai_response
+
         full_response = get_ai_response(history)
         await loading_msg.remove()
         msg = cl.Message(content=full_response)
@@ -122,11 +124,16 @@ async def on_message(message: cl.Message):
     await msg.send()
 
     full_response = ""
+    marker_detected = False
     try:
-        # Stream tokens from LLM
+        # Stream tokens from LLM, stop displaying when CONVERSATION_COMPLETE is detected
         for token in get_ai_response_streaming(history):
             full_response += token
-            await msg.stream_token(token)
+            if not marker_detected:
+                if CONVERSATION_COMPLETE_MARKER in full_response:
+                    marker_detected = True
+                else:
+                    await msg.stream_token(token)
     except Exception as e:
         # Fallback: show loading indicator if streaming fails
         logger.warning(f"Streaming failed, using fallback: {e}")
@@ -135,6 +142,7 @@ async def on_message(message: cl.Message):
         await loading_msg.send()
 
         from common.llm_utils import get_ai_response
+
         full_response = get_ai_response(history)
         await loading_msg.remove()
         msg = cl.Message(content=full_response)
@@ -146,6 +154,16 @@ async def on_message(message: cl.Message):
         return
 
     # Finalize the streamed message
+    # If marker was detected, replace with a clean completion message
+    if marker_detected:
+        _display_text, json_data = process_response(full_response)
+        stage_labels = {
+            "personal": "✅ Personal info collection completed.",
+            "holiday": "✅ Stay details collection completed.",
+        }
+        msg.content = stage_labels.get(current_stage, "✅ Collection completed.")
+        if json_data:
+            logger.info(f"Stage '{current_stage}' collected data: {json_data}")
     await msg.update()
 
     # Update history with the full response
@@ -216,7 +234,7 @@ async def _handle_stage_completion(
 
         # Display transition message
         await cl.Message(
-            content="✨ Great! I have all the information I need. Now let me find the perfect activities for you..."
+            content="✨ Great! I have all the information I need. Now let me find the perfect experiences and activities for your trip..."
         ).send()
 
         logger.debug(f"Transitioned to stage: {new_stage}")
@@ -255,7 +273,7 @@ async def _transition_to_stage(
 
     # Display transition message
     await cl.Message(
-        content="✅ Personal information collected! Now let's talk about your holiday plans."
+        content="✅ Personal information collected! Now let's get your stay details so I can find the best experiences for you."
     ).send()
 
     # Stream initial response from LLM for new stage
@@ -275,6 +293,7 @@ async def _transition_to_stage(
         await loading_msg.send()
 
         from common.llm_utils import get_ai_response
+
         full_response = get_ai_response(new_history)
         await loading_msg.remove()
         msg = cl.Message(content=full_response)

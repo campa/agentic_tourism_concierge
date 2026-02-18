@@ -1,8 +1,8 @@
 """Tests for the Product Hard Screener Agent."""
 
 import pytest
-
 from conftest import requires_db
+
 from product_hard_screener.core import (
     HardScreeningResult,
     build_sql_where,

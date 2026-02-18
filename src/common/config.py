@@ -16,7 +16,46 @@ TOP_RESULTS_COUNT: int = 5
 EMBEDDING_MODEL_NAME: str = "all-MiniLM-L6-v2"
 
 # LLM settings
-LLM_MODEL: str = "llama3.1:8b"
+LLM_MODEL: str = "qwen3:8b"
+
+# LLM model parameters (Ollama options)
+# Context window size - lower values reduce TTFT (time to first token)
+LLM_NUM_CTX: int = 4096
+
+# Temperature - lower values = more deterministic, faster responses
+LLM_TEMPERATURE: float = 0.3
+
+# Repeat penalty - Qwen 3 is sensitive to this; 1.1+ slows it down
+LLM_REPEAT_PENALTY: float = 1.0
+
+# Top-p (nucleus sampling) - lower values can speed up generation
+LLM_TOP_P: float = 0.9
+
+# Top-k sampling - limits token choices
+LLM_TOP_K: int = 40
+
+# Number of tokens to predict (-1 = infinite, -2 = fill context)
+LLM_NUM_PREDICT: int = -1
+
+# System prompt for speed optimization (optional, set to None to disable)
+LLM_SYSTEM_PROMPT: str | None = None
+
+# Qwen 3 "Thinking" Mode Optimization
+# Qwen 3 has an integrated Chain-of-Thought (CoT) mode that adds ~200-400ms latency
+# Setting this to True forces "Direct Response" mode, skipping internal reasoning
+# Requires Ollama 0.16.1+ which supports the /no_think flag
+LLM_DISABLE_THINKING: bool = False
+
+# Alternative: Use a system prompt to disable thinking (for older Ollama versions)
+# This is used when LLM_DISABLE_THINKING is True but /no_think flag isn't available
+LLM_NO_THINK_PROMPT: str = (
+    "Respond directly. Do not use internal reasoning tokens unless calculating complex JSON logic."
+)
+
+# KV Cache Quantization (Ollama environment variable)
+# Options: None (default f16), "q4_0" (fastest, slight quality loss), "q8_0" (balanced)
+# IMPORTANT: This requires setting OLLAMA_KV_CACHE_TYPE env var before starting Ollama
+LLM_KV_CACHE_TYPE: str | None = None
 
 # Database paths
 DB_PATH: str = "data/products_screener/products.db"

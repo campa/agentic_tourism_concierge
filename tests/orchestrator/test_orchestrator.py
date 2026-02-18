@@ -1,6 +1,5 @@
 """Tests for the agent orchestrator."""
 
-
 from orchestrator.core import (
     AgentContext,
     InteractiveOrchestrator,
